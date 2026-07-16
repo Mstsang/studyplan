@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 DSE 考生三大科學溫習法智能系統 - Miss Tsang</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts 載入 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <!-- React & ReactDOM UMD 載入 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel Standalone (瀏覽器即時編譯 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        .doodle-font {
+            font-family: 'Patrick Hand', 'M PLUS Rounded 1c', sans-serif;
+        }
+        
+        /* 模擬手繪不規則邊框 (Doodle Style Border) */
+        .sketch-box {
+            border: 3px solid #1e293b;
+            border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+            box-shadow: 4px 6px 0px 0px #1e293b;
+            transition: all 0.2s ease;
+        }
+
+        .sketch-box:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 5px 8px 0px 0px #1e293b;
+        }
+
+        .sketch-dashed {
+            border: 2.5px dashed #475569;
+            border-radius: 12px;
+        }
+
+        .sketch-input {
+            border: none;
+            border-bottom: 2px dashed #1e293b;
+            background: transparent;
+            outline: none;
+        }
+        .sketch-input:focus {
+            border-bottom-style: solid;
+            border-bottom-color: #f43f5e;
+        }
+
+        /* 默寫區橫格與網格線 background */
+        .grid-ruled {
+            background-image: 
+                linear-gradient(90deg, rgba(30,41,59,0.05) 1px, transparent 1px),
+                linear-gradient(rgba(30,41,59,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* 筆記本底線背景 */
+        .notebook-lines {
+            background-image: linear-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 100% 2.2rem;
+            line-height: 2.2rem;
+        }
+
+        /* 列印樣式表 (A4 尺寸優化) */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 11pt;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-full-width {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-width: 2px !important;
+            }
+            /* 強制在列印時解開閃卡虛化 */
+            .print-reveal-answer {
+                filter: none !important;
+                background: transparent !important;
+                color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#FDFBF9] text-slate-800 min-h-screen p-3 md:p-6 selection:bg-rose-100">
+
+    <div id="root"></div>
+
+    <!-- React 核心應用程式 -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- SVG 內建圖示庫 (擺脫 CDN 載入失敗問題) ---
+        const Icons = {
+            Printer: () => (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+            ),
+            RotateCw: () => (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+            ),
+            Plus: () => (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            ),
+            Trash2: () => (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            ),
+            Play: () => (
+                <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+            ),
+            Pause: () => (
+                <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+            ),
+            RotateCcw: () => (
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+            ),
+            Check: () => (
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            ),
+            Eye: () => (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            ),
+            EyeOff: () => (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+            ),
+            AlertTriangle: () => (
+                <svg className="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            ),
+            Sparkles: () => (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707-.707"></path>
+                </svg>
+            )
+        };
+
+        // --- STREAMING_CHUNK: Initializing main App component and global states... ---
+        function App() {
+            const [activeTab, setActiveTab] = useState('pomodoro'); // 'pomodoro' | 'activeRecall' | 'spacedRepetition'
+            const [showConfirmModal, setShowConfirmModal] = useState(false);
+            const [pendingResetTab, setPendingResetTab] = useState(null);
+
+            // --- 全域基本資料共享 ---
+            const [studentName, setStudentName] = useState('考生名字');
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+            const [countdown, setCountdown] = useState('100');
+
+            // --- 狀態：番茄工作法專用 ---
+            const [focusStars, setFocusStars] = useState(0);
+            const [pomodoroTargets, setPomodoroTargets] = useState([
+                { id: 1, text: '完成 2020 Math Paper 1 Section A', completed: false },
+                { id: 2, text: '溫習 English Writing 常用句型 5 個', completed: false },
+                { id: 3, text: '整理 中文科 抒情文寫作素材庫', completed: false },
+            ]);
+            const [newPomoTarget, setNewPomoTarget] = useState('');
+            const [tomatoes, setTomatoes] = useState(
+                Array(10).fill(null).map((_, i) => ({ id: i, completed: false }))
+            );
+            const [pomoSchedule, setPomoSchedule] = useState([
+                { id: 1, time: '09:00 - 10:30', subject: '數學科 Section A 操練', review: 'Section A2 部分仍需加強速度' },
+                { id: 2, time: '11:00 - 12:30', subject: '英文科 Writing 句型記憶', review: '已掌握 3 個高級連接詞' },
+                { id: 3, time: '14:30 - 16:30', subject: '中文科 模擬試卷閱讀理解', review: '白話文答題精準度有進步' },
+                { id: 4, time: '17:00 - 18:30', subject: '選修科 核心概念複習', review: '筆記整理完成，明天開始做 Mock' },
+            ]);
+            const [pomoDistractions, setPomoDistractions] = useState([
+                { id: 1, text: '好想看手機的新動態（大休息時再看）', done: false },
+            ]);
+            const [newDistraction, setNewDistraction] = useState('');
+
+            // --- 計時器狀態 (番茄鐘) ---
+            const [timerMode, setTimerMode] = useState('work'); // 'work' or 'break'
+            const [pomoTimeLeft, setPomoTimeLeft] = useState(25 * 60);
+            const [pomoTimerRunning, setPomoTimerRunning] = useState(false);
+            const pomoTimerRef = useRef(null);
+
+            // --- 狀態：主動回想法專用 ---
+            const [brainDumpText, setBrainDumpText] = useState('');
+            const [activeRecallSubject, setActiveRecallSubject] = useState('例如：中文科文言文 / 物理科電磁學');
+            const [mistakes, setMistakes] = useState([
+                { id: 1, wrong: '將 DSE 數學科的餘數定理（Remainder Theorem）正負號搞錯，帶入 f(-a) 而非 f(a)。', correct: '當除式為 (x - a) 時，餘數為 f(a)；當除式為 (ax - b) 時，餘數為 f(b/a)。必須先令除式等於 0！' },
+                { id: 2, wrong: '文言字詞「走」字，直覺誤譯為「奔跑」以外的現代漢語意思。', correct: '古漢語中「走」解作「跑」，「步」才是慢慢走。要特別注意古今異義。' }
+            ]);
+            const [newWrongText, setNewWrongText] = useState('');
+            const [newCorrectText, setNewCorrectText] = useState('');
+            const [flashcards, setFlashcards] = useState([
+                { id: 1, question: '什麼是「費曼學習法」的核心精神？', answer: '用最簡單、沒有術語的語言，向一個完全不懂這個領域的人（例如八歲小孩）解釋清楚該概念，以此檢視自己是否真正理解。', mastered: false, showAnswer: false },
+                { id: 2, question: '如何區分主動運輸（Active Transport）與被動運輸？', answer: '主動運輸需要消耗能量（ATP），且是逆著濃度梯度進行（低到高）；被動運輸不消耗能量，順著濃度梯度進行。', mastered: false, showAnswer: false }
+            ]);
+            const [newFlashQuestion, setNewFlashQuestion] = useState('');
+            const [newFlashAnswer, setNewFlashAnswer] = useState('');
+            const [feynmanList, setFeynmanList] = useState([
+                { id: 1, text: '我能完全不用教科書上的專業術語（純粹用生活化比喻）來解釋今天的重點。', checked: false },
+                { id: 2, text: '我嘗試向同學、家人或甚至對著鏡子模擬講解，中途沒有任何卡頓或「說不下去」的地方。', checked: false },
+                { id: 3, text: '當被追問「為什麼會這樣」時，我能清楚說出背後的根本邏輯，而不是只回答「因為公式是這樣寫的」。', checked: false }
+            ]);
+
+            // --- 狀態：間隔重複專用 ---
+            const [paperYear, setPaperYear] = useState('例如：2022 Math Paper 1');
+            const [paperTimeLimit, setPaperTimeLimit] = useState('120');
+            const [paperActualTime, setPaperActualTime] = useState('');
+            const [paperScore, setPaperScore] = useState('');
+            const [paperTargetScore, setPaperTargetScore] = useState('');
+            const [paperNotes, setPaperNotes] = useState('');
+            const [srTopics, setSrTopics] = useState([
+                { id: 1, topic: '等差與等比數列 (AP / GP) 公式與應用', baseDate: date, d1: false, d3: false, d7: false },
+                { id: 2, topic: '文言虛詞「而」、「其」字字義辨析', baseDate: date, d1: false, d3: false, d7: false }
+            ]);
+            const [newSrTopic, setNewSrTopic] = useState('');
+            const [traps, setTraps] = useState([
+                { id: 1, text: '極限題中，當 x 趨近於 0 時，忘記檢查分母是否不等於 0。' },
+                { id: 2, text: '英文 Writing 忘記轉換 Active / Passive Voice 的主動與被動稱呼，造成語意混亂。' }
+            ]);
+            const [newTrapText, setNewTrapText] = useState('');
+            const [mindsetQuote, setMindsetQuote] = useState('關關難過關關過，今天的努力都會在放榜那天開花結果！🌸');
+            const [gratitude, setGratitude] = useState('謝謝戰友今天借我印複習資料，還有媽媽煮的宵夜！');
+
+            // --- 操卷限時模擬計時器狀態 ---
+            const [examTimerSec, setExamTimerSec] = useState(120 * 60);
+            const [examTimerRunning, setExamTimerRunning] = useState(false);
+            const examTimerRef = useRef(null);
+
+            // --- 提示音生成器 (Web Audio API - 無外連資源依賴) ---
+            const triggerBeep = (type) => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    if (type === 'workFinished') {
+                        // 叮咚兩聲
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.15);
+                        setTimeout(() => {
+                            const osc2 = ctx.createOscillator();
+                            const gain2 = ctx.createGain();
+                            osc2.connect(gain2);
+                            gain2.connect(ctx.destination);
+                            osc2.type = 'sine';
+                            osc2.frequency.setValueAtTime(880, ctx.currentTime); // A5
+                            gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+                            osc2.start();
+                            osc2.stop(ctx.currentTime + 0.3);
+                        }, 180);
+                    } else if (type === 'breakFinished') {
+                        // 單音響起
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(440, ctx.currentTime); // A4
+                        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.5);
+                    } else {
+                        // 考場鐘聲效果
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(330, ctx.currentTime);
+                        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 1);
+                    }
+                } catch (e) {
+                    console.log('音訊功能尚未取得授權。');
+                }
+            };
+
+            // --- 番茄鐘計時器 Logic ---
+            useEffect(() => {
+                if (pomoTimerRunning) {
+                    pomoTimerRef.current = setInterval(() => {
+                        setPomoTimeLeft((prev) => {
+                            if (prev <= 1) {
+                                clearInterval(pomoTimerRef.current);
+                                setPomoTimerRunning(false);
+                                if (timerMode === 'work') {
+                                    triggerBeep('workFinished');
+                                    // 自動將下一個空白番茄填滿
+                                    setTomatoes(prevToms => {
+                                        const idx = prevToms.findIndex(t => !t.completed);
+                                        if (idx !== -1) {
+                                            const next = [...prevToms];
+                                            next[idx] = { ...next[idx], completed: true };
+                                            return next;
+                                        }
+                                        return prevToms;
+                                    });
+                                    setTimerMode('break');
+                                    return 5 * 60;
+                                } else {
+                                    triggerBeep('breakFinished');
+                                    setTimerMode('work');
+                                    return 25 * 60;
+                                }
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                } else {
+                    if (pomoTimerRef.current) clearInterval(pomoTimerRef.current);
+                }
+                return () => clearInterval(pomoTimerRef.current);
+            }, [pomoTimerRunning, timerMode]);
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            // --- 操卷計時器 Logic ---
+            useEffect(() => {
+                if (examTimerRunning) {
+                    examTimerRef.current = setInterval(() => {
+                        setExamTimerSec((prev) => {
+                            if (prev <= 1) {
+                                clearInterval(examTimerRef.current);
+                                setExamTimerRunning(false);
+                                triggerBeep('examFinished');
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                } else {
+                    if (examTimerRef.current) clearInterval(examTimerRef.current);
+                }
+                return () => clearInterval(examTimerRef.current);
+            }, [examTimerRunning]);
+
+            const formatExamTime = (seconds) => {
+                const hrs = Math.floor(seconds / 3600);
+                const mins = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            const calculateFutureDate = (baseDateStr, days) => {
+                try {
+                    const d = new Date(baseDateStr);
+                    if (isNaN(d.getTime())) return '';
+                    d.setDate(d.getDate() + days);
+                    return `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
+                } catch (e) {
+                    return '';
+                }
+            };
+
+            // --- 客製化重設對話框管理 ---
+            const requestReset = (tab) => {
+                setPendingResetTab(tab);
+                setShowConfirmModal(true);
+            };
+
+            const confirmReset = () => {
+                setShowConfirmModal(false);
+                if (pendingResetTab === 'pomodoro') {
+                    setFocusStars(0);
+                    setPomodoroTargets([]);
+                    setTomatoes(Array(10).fill(null).map((_, i) => ({ id: i, completed: false })));
+                    setPomoSchedule([
+                        { id: 1, time: '時段 1', subject: '', review: '' },
+                        { id: 2, time: '時段 2', subject: '', review: '' }
+                    ]);
+                    setPomoDistractions([]);
+                    setPomoTimerRunning(false);
+                    setPomoTimeLeft(25 * 60);
+                    setTimerMode('work');
+                } else if (pendingResetTab === 'activeRecall') {
+                    setBrainDumpText('');
+                    setMistakes([]);
+                    setFlashcards([]);
+                    setFeynmanList(feynmanList.map(item => ({ ...item, checked: false })));
+                } else if (pendingResetTab === 'spacedRepetition') {
+                    setPaperTimeLimit('120');
+                    setPaperActualTime('');
+                    setPaperScore('');
+                    setPaperTargetScore('');
+                    setPaperNotes('');
+                    setSrTopics([]);
+                    setTraps([]);
+                    setMindsetQuote('');
+                    setGratitude('');
+                    setExamTimerRunning(false);
+                    setExamTimerSec(120 * 60);
+                }
+            };
+
+            return (
+                <div className="max-w-5xl mx-auto py-2 md:py-6">
+                    
+                    {/* 頂部不列印之功能選單與分頁切換 */}
+                    <div className="no-print mb-8">
+                        {/* 系統說明看板 */}
+                        <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl mb-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-4 border-2 border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <span className="bg-rose-500 text-white p-2.5 rounded-full font-black text-xl animate-pulse">DSE</span>
+                                <div>
+                                    <h4 className="font-extrabold text-base tracking-wide flex items-center gap-1.5">
+                                        🚀 DSE 考生三大科學溫習法智能系統
+                                    </h4>
+                                    <p className="text-xs text-slate-400">
+                                        Miss Tsang 專屬設計。線上操作可自動計時與打勾，亦可直接點擊列印成精緻黑白 A4 複習單。
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => window.print()}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-extrabold rounded-xl transition-all shadow active:translate-y-0.5 text-sm"
+                            >
+                                <Icons.Printer />
+                                列印當前溫習計劃表 (A4)
+                            </button>
+                        </div>
+
+                        {/* 三大溫習法分頁 Tab */}
+                        <div className="grid grid-cols-3 gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-300">
+                            <button
+                                onClick={() => setActiveTab('pomodoro')}
+                                className={`py-3 px-1 rounded-xl font-black text-xs md:text-sm transition-all doodle-font flex flex-col md:flex-row items-center justify-center gap-1.5 ${activeTab === 'pomodoro' ? 'bg-white text-rose-600 border-2 border-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <span className="text-base md:text-lg">🍅</span>
+                                <span>番茄工作法</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('activeRecall')}
+                                className={`py-3 px-1 rounded-xl font-black text-xs md:text-sm transition-all doodle-font flex flex-col md:flex-row items-center justify-center gap-1.5 ${activeTab === 'activeRecall' ? 'bg-white text-emerald-600 border-2 border-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <span className="text-base md:text-lg">🧠</span>
+                                <span>主動回想版</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('spacedRepetition')}
+                                className={`py-3 px-1 rounded-xl font-black text-xs md:text-sm transition-all doodle-font flex flex-col md:flex-row items-center justify-center gap-1.5 ${activeTab === 'spacedRepetition' ? 'bg-white text-amber-600 border-2 border-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <span className="text-base md:text-lg">📈</span>
+                                <span>間隔重複操卷</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* --- 主計劃表紙張容器 --- */}
+                    <div className="bg-white p-6 md:p-10 sketch-box print-full-width relative bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px]">
+                        
+                        {/* 手繪可愛小裝飾：別針 */}
+                        <div className="absolute -top-3 left-10 w-8 h-16 no-print text-slate-700 opacity-80 transform -rotate-12">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <path d="M6 10V18C6 20.2 7.8 22 10 22C12.2 22 14 20.2 14 18V6C14 4.3 12.7 3 11 3C9.3 3 8 4.3 8 6V16C8 17.1 8.9 18 10 18C11.1 18 12 17.1 12 16V9" />
+                            </svg>
+                        </div>
+
+                        {/* 重設按鈕 (各分頁右上角) */}
+                        <div className="absolute top-4 right-4 no-print">
+                            <button 
+                                onClick={() => requestReset(activeTab)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg text-xs font-bold transition-all border border-stone-200"
+                                title="清空當前複習表內容"
+                            >
+                                <Icons.RotateCw />
+                                清空重設
+                            </button>
+                        </div>
+
+                        {/* --- 1. 共用頁首設計 (Header) --- */}
+                        <header className="border-b-4 border-double border-slate-800 pb-6 mb-8 text-center relative">
+                            {activeTab === 'pomodoro' && (
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight doodle-font flex items-center gap-2">
+                                        📝 應屆考生每日溫習計劃 <span className="text-rose-500 font-black text-2xl md:text-3xl">(番茄專用版)</span>
+                                    </h1>
+                                    <p className="text-slate-500 text-xs md:text-sm tracking-widest font-bold border-b-2 border-slate-300 pb-1 inline-block">
+                                        ⏱️ 保持專注，分秒必爭！
+                                    </p>
+                                </div>
+                            )}
+
+                            {activeTab === 'activeRecall' && (
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight doodle-font flex items-center gap-2">
+                                        🧠 應屆考生每日溫習計劃 <span className="text-emerald-600 font-black text-2xl md:text-3xl">(主動回想版)</span>
+                                    </h1>
+                                    <p className="text-slate-500 text-xs md:text-sm tracking-widest font-bold border-b-2 border-slate-300 pb-1 inline-block">
+                                        ❌ 不要只用眼睛看，用腦袋想出來！
+                                    </p>
+                                </div>
+                            )}
+
+                            {activeTab === 'spacedRepetition' && (
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight doodle-font flex items-center gap-2">
+                                        📊 應屆考生每日溫習計劃 <span className="text-amber-600 font-black text-2xl md:text-3xl">(間隔重複與操卷版)</span>
+                                    </h1>
+                                    <p className="text-slate-500 text-xs md:text-sm tracking-widest font-bold border-b-2 border-slate-300 pb-1 inline-block">
+                                        🎯 溫故知新，擊破試題！
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* 個人與學科欄位 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 text-left">
+                                <div className="flex items-center gap-2 border-b-2 border-slate-800 pb-1">
+                                    <span className="font-bold text-slate-800 whitespace-nowrap text-sm">👤 姓名：</span>
+                                    <input 
+                                        type="text" 
+                                        value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                        className="w-full font-bold text-slate-700 bg-transparent outline-none doodle-font text-base"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2 border-b-2 border-slate-800 pb-1">
+                                    <span className="font-bold text-slate-800 whitespace-nowrap text-sm">📅 日期：</span>
+                                    <input 
+                                        type="date" 
+                                        value={date}
+                                        onChange={(e) => setDate(e.target.value)}
+                                        className="w-full text-slate-700 bg-transparent outline-none doodle-font text-sm"
+                                    />
+                                </div>
+
+                                {activeTab !== 'activeRecall' ? (
+                                    <div className="flex items-center gap-2 border-b-2 border-slate-800 pb-1">
+                                        <span className="font-bold text-slate-800 whitespace-nowrap text-sm">
+                                            {activeTab === 'pomodoro' ? '🔥 DSE 倒數：' : '✍️ 今日操卷：'}
+                                        </span>
+                                        {activeTab === 'pomodoro' ? (
+                                            <div className="flex items-center gap-1 w-full">
+                                                <input 
+                                                    type="number" 
+                                                    value={countdown}
+                                                    onChange={(e) => setCountdown(e.target.value)}
+                                                    className="w-16 text-center font-bold text-rose-600 bg-transparent outline-none doodle-font text-lg"
+                                                />
+                                                <span className="font-bold text-xs text-slate-500">天</span>
+                                            </div>
+                                        ) : (
+                                            <input 
+                                                type="text" 
+                                                value={paperYear}
+                                                onChange={(e) => setPaperYear(e.target.value)}
+                                                className="w-full font-bold text-slate-700 bg-transparent outline-none doodle-font text-sm"
+                                            />
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 border-b-2 border-slate-800 pb-1 col-span-1">
+                                        <span className="font-bold text-slate-800 whitespace-nowrap text-sm">📚 複習科目：</span>
+                                        <input 
+                                            type="text" 
+                                            value={activeRecallSubject}
+                                            onChange={(e) => setActiveRecallSubject(e.target.value)}
+                                            className="w-full font-bold text-slate-700 bg-transparent outline-none doodle-font text-sm"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* 今日專注指數星星 */}
+                                <div className="flex flex-col justify-center sm:justify-start">
+                                    <span className="font-bold text-slate-800 text-[10px] mb-1">⭐ 今日專注度/狀態：</span>
+                                    <div className="flex gap-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setFocusStars(star === focusStars ? star - 1 : star)}
+                                                className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
+                                            >
+                                                <svg 
+                                                    viewBox="0 0 24 24" 
+                                                    className={`w-6 h-6 stroke-[2] ${star <= focusStars ? 'fill-amber-300 stroke-slate-800' : 'fill-none stroke-slate-800'}`}
+                                                >
+                                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                                                </svg>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+
+                        {}
+                        {/* ========================================================= */}
+                        {/* 1. 番茄工作法專用版介面 */}
+                        {/* ========================================================= */}
+                        {activeTab === 'pomodoro' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                
+                                {/* 左側：奪星目標與計時器 */}
+                                <div className="lg:col-span-5 flex flex-col gap-8">
+                                    
+                                    {/* 今日奪星目標 */}
+                                    <div className="p-5 sketch-box bg-white relative">
+                                        <div className="absolute -top-3 right-4 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] tracking-wider">
+                                            TODAY'S TARGETS
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-4 flex items-center gap-1.5">
+                                            🎯 今日奪星目標
+                                        </h3>
+                                        
+                                        <div className="space-y-3 min-h-[140px]">
+                                            {pomodoroTargets.length === 0 ? (
+                                                <p className="text-slate-400 text-xs italic text-center py-6">點選下方新增今天最想擊破的主題！</p>
+                                            ) : (
+                                                pomodoroTargets.map(t => (
+                                                    <div key={t.id} className="flex items-start gap-2 group">
+                                                        <button 
+                                                            onClick={() => setPomodoroTargets(pomodoroTargets.map(item => item.id === t.id ? { ...item, completed: !item.completed } : item))}
+                                                            className="mt-1 focus:outline-none shrink-0"
+                                                        >
+                                                            {t.completed ? (
+                                                                <div className="w-5 h-5 border-2 border-slate-800 rounded flex items-center justify-center bg-emerald-100">
+                                                                    <Icons.Check />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-5 h-5 border-2 border-slate-800 rounded hover:bg-slate-50"></div>
+                                                            )}
+                                                        </button>
+                                                        <span className={`text-sm font-medium doodle-font flex-grow break-all ${t.completed ? 'line-through text-slate-400 decoration-rose-500 decoration-2' : 'text-slate-800'}`}>
+                                                            {t.text}
+                                                        </span>
+                                                        <button 
+                                                            onClick={() => setPomodoroTargets(pomodoroTargets.filter(item => item.id !== t.id))}
+                                                            className="opacity-0 group-hover:opacity-100 no-print text-slate-400 hover:text-rose-500 transition-all p-0.5"
+                                                        >
+                                                            <Icons.Trash2 />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 flex gap-2 no-print">
+                                            <input 
+                                                type="text"
+                                                placeholder="新增關鍵奪星目標..."
+                                                value={newPomoTarget}
+                                                onChange={(e) => setNewPomoTarget(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if(e.key === 'Enter' && newPomoTarget.trim()) {
+                                                        setPomodoroTargets([...pomodoroTargets, { id: Date.now(), text: newPomoTarget.trim(), completed: false }]);
+                                                        setNewPomoTarget('');
+                                                    }
+                                                }}
+                                                className="flex-grow sketch-input text-xs px-2 py-1"
+                                            />
+                                            <button 
+                                                onClick={() => {
+                                                    if(newPomoTarget.trim()) {
+                                                        setPomodoroTargets([...pomodoroTargets, { id: Date.now(), text: newPomoTarget.trim(), completed: false }]);
+                                                        setNewPomoTarget('');
+                                                    }
+                                                }}
+                                                className="p-1.5 border-2 border-slate-800 rounded bg-slate-100 hover:bg-slate-200"
+                                            >
+                                                <Icons.Plus />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 番茄鐘追蹤器 & 計時器 */}
+                                    <div className="p-5 sketch-box bg-[#FFFDF9] relative">
+                                        <div className="absolute -top-3 right-4 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-rose-500">
+                                            POMODORO TRACKER
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3">
+                                            🍅 番茄鐘追蹤器
+                                        </h3>
+                                        <p className="text-[11px] text-slate-500 mb-4">
+                                            每專注 25 分鐘塗滿一個番茄。挑戰每日累積 8 - 12 個番茄！
+                                        </p>
+
+                                        {/* 手繪番茄 */}
+                                        <div className="grid grid-cols-5 gap-3 justify-items-center mb-6 py-2">
+                                            {tomatoes.map((t, idx) => (
+                                                <button
+                                                    key={t.id}
+                                                    onClick={() => setTomatoes(tomatoes.map(item => item.id === t.id ? { ...item, completed: !item.completed } : item))}
+                                                    className="group relative focus:outline-none transition-transform hover:scale-110 active:scale-95"
+                                                    title={`點擊為第 ${idx+1} 個番茄塗色`}
+                                                >
+                                                    <svg viewBox="0 0 100 100" className="w-10 h-10">
+                                                        <path d="M 50 15 C 47 25, 40 25, 35 20 C 42 28, 48 28, 50 32 C 52 28, 58 28, 65 20 C 60 25, 53 25, 50 15 Z" className="fill-emerald-600 stroke-slate-800 stroke-[5]" strokeLinejoin="round"/>
+                                                        <path d="M 50 28 C 25 25, 12 40, 15 65 C 18 85, 45 92, 50 90 C 55 92, 82 85, 85 65 C 88 40, 75 25, 50 28 Z" className={`stroke-slate-800 stroke-[5] transition-colors duration-300 ${t.completed ? 'fill-rose-500' : 'fill-white'}`} strokeLinejoin="round"/>
+                                                        <path d="M 30 45 C 25 55, 28 70, 35 75" className="fill-none stroke-slate-800 stroke-[3] opacity-40" strokeLinecap="round"/>
+                                                    </svg>
+                                                    <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-white border border-slate-800 rounded-full w-4 h-4 flex items-center justify-center">
+                                                        {idx + 1}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* 內建番茄鐘面板 */}
+                                        <div className="timer-panel border-2 border-dashed border-slate-400 rounded-xl p-4 bg-white text-center">
+                                            <div className="flex justify-center gap-3 mb-2">
+                                                <button 
+                                                    onClick={() => { setPomoTimerRunning(false); setTimerMode('work'); setPomoTimeLeft(25*60); }}
+                                                    className={`px-3 py-1 rounded-full text-[10px] font-bold ${timerMode === 'work' ? 'bg-rose-100 text-rose-700 border border-rose-300' : 'bg-slate-100 text-slate-500'}`}
+                                                >
+                                                    專注 (25m)
+                                                </button>
+                                                <button 
+                                                    onClick={() => { setPomoTimerRunning(false); setTimerMode('break'); setPomoTimeLeft(5*60); }}
+                                                    className={`px-3 py-1 rounded-full text-[10px] font-bold ${timerMode === 'break' ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-500'}`}
+                                                >
+                                                    休息 (5m)
+                                                </button>
+                                            </div>
+
+                                            <div className="text-3xl font-bold tracking-wider doodle-font text-slate-800 my-2">
+                                                {formatTime(pomoTimeLeft)}
+                                            </div>
+
+                                            <div className="flex justify-center gap-2">
+                                                <button
+                                                    onClick={() => setPomoTimerRunning(!pomoTimerRunning)}
+                                                    className={`px-4 py-1 rounded-lg text-xs font-bold flex items-center gap-1 text-white shadow ${pomoTimerRunning ? 'bg-amber-500 hover:bg-amber-600' : 'bg-rose-500 hover:bg-rose-600'}`}
+                                                >
+                                                    {pomoTimerRunning ? <Icons.Pause /> : <Icons.Play />}
+                                                    {pomoTimerRunning ? '暫停' : '開始'}
+                                                </button>
+                                                <button
+                                                    onClick={() => { setPomoTimerRunning(false); setPomoTimeLeft(timerMode==='work' ? 25*60 : 5*60); }}
+                                                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 border text-slate-600 flex items-center gap-1"
+                                                >
+                                                    <Icons.RotateCcw />
+                                                    重設
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 右側：時段分配表與防分心 */}
+                                <div className="lg:col-span-7 flex flex-col gap-8">
+                                    
+                                    {/* 科目課題分配表 */}
+                                    <div className="p-5 sketch-box bg-white relative">
+                                        <div className="absolute -top-3 right-4 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] tracking-wider">
+                                            SCHEDULE
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-4">
+                                            📊 核心 & 選修科時間分配表
+                                        </h3>
+
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-xs border-collapse">
+                                                <thead>
+                                                    <tr className="border-b-2 border-slate-800">
+                                                        <th className="py-2 px-1 font-bold text-slate-900 w-1/4">⏰ 時間/時段</th>
+                                                        <th className="py-2 px-1 font-bold text-slate-900 w-2/5">📚 科目 / 溫習課題</th>
+                                                        <th className="py-2 px-1 font-bold text-slate-900 w-2/5">🔍 檢視結果 (檢討)</th>
+                                                        <th className="py-2 px-1 font-bold text-slate-900 w-10 no-print"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {pomoSchedule.map((row) => (
+                                                        <tr key={row.id} className="border-b border-slate-200 group hover:bg-slate-50/50">
+                                                            <td className="py-2 px-1">
+                                                                <input 
+                                                                    type="text"
+                                                                    value={row.time}
+                                                                    onChange={(e) => setPomoSchedule(pomoSchedule.map(item => item.id === row.id ? { ...item, time: e.target.value } : item))}
+                                                                    className="w-full bg-transparent border-none text-xs font-semibold doodle-font"
+                                                                />
+                                                            </td>
+                                                            <td className="py-2 px-1">
+                                                                <input 
+                                                                    type="text"
+                                                                    value={row.subject}
+                                                                    placeholder="輸入溫習範疇..."
+                                                                    onChange={(e) => setPomoSchedule(pomoSchedule.map(item => item.id === row.id ? { ...item, subject: e.target.value } : item))}
+                                                                    className="w-full bg-transparent border-none text-xs doodle-font"
+                                                                />
+                                                            </td>
+                                                            <td className="py-2 px-1">
+                                                                <input 
+                                                                    type="text"
+                                                                    value={row.review}
+                                                                    placeholder="成果檢討..."
+                                                                    onChange={(e) => setPomoSchedule(pomoSchedule.map(item => item.id === row.id ? { ...item, review: e.target.value } : item))}
+                                                                    className="w-full bg-transparent border-none text-xs text-slate-600 doodle-font"
+                                                                />
+                                                            </td>
+                                                            <td className="py-2 px-1 text-center no-print">
+                                                                <button
+                                                                    onClick={() => setPomoSchedule(pomoSchedule.filter(item => item.id !== row.id))}
+                                                                    className="text-slate-300 hover:text-rose-500 p-1"
+                                                                >
+                                                                    <Icons.Trash2 />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setPomoSchedule([...pomoSchedule, { id: Date.now(), time: '新時段', subject: '', review: '' }])}
+                                            className="mt-3 no-print w-full py-1.5 border-2 border-dashed border-slate-300 hover:border-slate-800 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-800 flex items-center justify-center gap-1"
+                                        >
+                                            <Icons.Plus />
+                                            新增溫習時段
+                                        </button>
+                                    </div>
+
+                                    {/* 防分心備忘錄 */}
+                                    <div className="p-5 sketch-box bg-[#FEFDFB] relative">
+                                        <div className="absolute -top-3 right-4 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-amber-600">
+                                            DISTRACTIONS
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3">
+                                            🛑 防分心備忘錄 (Distraction List)
+                                        </h3>
+                                        <p className="text-[11px] text-slate-500 mb-3">
+                                            溫習時突發腦熱閃過的雜念？先快速記在下方，放空大腦，等休息時間再處理！
+                                        </p>
+
+                                        <div className="space-y-2.5 min-h-[90px] bg-slate-50 p-3 rounded-lg border">
+                                            {pomoDistractions.length === 0 ? (
+                                                <p className="text-slate-400 text-xs italic text-center py-6">當前完美專注中！</p>
+                                            ) : (
+                                                pomoDistractions.map(d => (
+                                                    <div key={d.id} className="flex items-center justify-between group">
+                                                        <div className="flex items-center gap-2">
+                                                            <button 
+                                                                onClick={() => setPomoDistractions(pomoDistractions.map(item => item.id === d.id ? { ...item, done: !item.done } : item))}
+                                                                className="focus:outline-none shrink-0 text-xs"
+                                                            >
+                                                                {d.done ? '✅' : '📌'}
+                                                            </button>
+                                                            <span className={`text-xs doodle-font ${d.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                                                                {d.text}
+                                                            </span>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => setPomoDistractions(pomoDistractions.filter(item => item.id !== d.id))}
+                                                            className="opacity-0 group-hover:opacity-100 no-print text-slate-300 hover:text-rose-500 p-0.5"
+                                                        >
+                                                            <Icons.Trash2 />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 flex gap-2 no-print">
+                                            <input 
+                                                type="text"
+                                                placeholder="突然想到的雜事 (如：想喝水、想滑手機)..."
+                                                value={newDistraction}
+                                                onChange={(e) => setNewDistraction(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if(e.key==='Enter' && newDistraction.trim()){
+                                                        setPomoDistractions([...pomoDistractions, { id: Date.now(), text: newDistraction.trim(), done: false }]);
+                                                        setNewDistraction('');
+                                                    }
+                                                }}
+                                                className="flex-grow sketch-input text-xs px-2 py-1"
+                                            />
+                                            <button 
+                                                onClick={() => {
+                                                    if(newDistraction.trim()){
+                                                        setPomoDistractions([...pomoDistractions, { id: Date.now(), text: newDistraction.trim(), done: false }]);
+                                                        setNewDistraction('');
+                                                    }
+                                                }}
+                                                className="p-1.5 border-2 border-slate-800 rounded bg-slate-100 hover:bg-slate-200"
+                                            >
+                                                <Icons.Plus />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+
+                        {}
+                        {/* ========================================================= */}
+                        {/* 2. 主動回想法專用版介面 */}
+                        {/* ========================================================= */}
+                        {activeTab === 'activeRecall' && (
+                            <div className="space-y-8">
+                                
+                                {/* 盲測默寫區 */}
+                                <div className="sketch-box bg-white p-5 relative">
+                                    <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-rose-500">
+                                        THE BRAIN DUMP BOX
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3 flex items-center gap-1.5">
+                                        ✍️ 盲測默寫區
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                                        <strong>【大腦記憶提取】</strong> 蓋上所有教科書！憑空在下方快速默寫今天溫習核心：
+                                    </p>
+                                    <textarea
+                                        value={brainDumpText}
+                                        onChange={(e) => setBrainDumpText(e.target.value)}
+                                        placeholder="閉眼思索... 寫下你此時此刻記得的所有核心公式、文言注釋或理論架構..."
+                                        className="w-full h-44 p-4 border-2 border-dashed border-slate-400 rounded-xl focus:border-slate-800 bg-stone-50/20 font-medium doodle-font text-slate-700 outline-none leading-relaxed grid-ruled"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                    
+                                    {/* 錯題追蹤記錄 */}
+                                    <div className="lg:col-span-6 sketch-box bg-white p-5 relative">
+                                        <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-amber-500">
+                                            MISTAKE LOG
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-4">
+                                            ❌ 錯題追蹤記錄
+                                        </h3>
+
+                                        <div className="space-y-4 min-h-[200px]">
+                                            {mistakes.length === 0 ? (
+                                                <p className="text-slate-400 text-xs italic text-center py-10">未發現錯題？記錄並分析錯題，是突破分數的唯一捷徑。</p>
+                                            ) : (
+                                                mistakes.map(item => (
+                                                    <div key={item.id} className="p-3 border-2 border-dashed border-slate-300 rounded-xl bg-orange-50/10 relative group">
+                                                        <button 
+                                                            onClick={() => setMistakes(mistakes.filter(m => m.id !== item.id))}
+                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 no-print text-slate-300 hover:text-rose-500"
+                                                        >
+                                                            <Icons.Trash2 />
+                                                        </button>
+                                                        <div className="mb-2">
+                                                            <span className="inline-block px-1.5 py-0.5 bg-rose-100 text-rose-700 font-bold text-[9px] rounded mb-1">我做錯了什麼？</span>
+                                                            <p className="text-xs text-slate-700 font-medium doodle-font">{item.wrong}</p>
+                                                        </div>
+                                                        <div className="border-t border-slate-200 pt-2">
+                                                            <span className="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold text-[9px] rounded mb-1">正確觀念 / 解法鍵</span>
+                                                            <p className="text-xs text-emerald-800 font-bold doodle-font">🔑 {item.correct}</p>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 p-3 border-t border-slate-100 no-print space-y-2">
+                                            <p className="text-xs font-bold text-slate-700">➕ 記錄新錯題</p>
+                                            <input 
+                                                type="text"
+                                                placeholder="我寫錯了甚麼？"
+                                                value={newWrongText}
+                                                onChange={(e) => setNewWrongText(e.target.value)}
+                                                className="w-full text-xs sketch-input py-1.5"
+                                            />
+                                            <input 
+                                                type="text"
+                                                placeholder="正確解答/邏輯公式？"
+                                                value={newCorrectText}
+                                                onChange={(e) => setNewCorrectText(e.target.value)}
+                                                className="w-full text-xs sketch-input py-1.5"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    if(newWrongText.trim() && newCorrectText.trim()) {
+                                                        setMistakes([...mistakes, { id: Date.now(), wrong: newWrongText.trim(), correct: newCorrectText.trim() }]);
+                                                        setNewWrongText('');
+                                                        setNewCorrectText('');
+                                                    }
+                                                }}
+                                                className="w-full mt-1 py-1.5 bg-slate-100 hover:bg-slate-200 border text-slate-700 rounded text-xs font-bold flex items-center justify-center gap-1"
+                                            >
+                                                <Icons.Plus />
+                                                加入錯題本
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 閃卡與費曼 */}
+                                    <div className="lg:col-span-6 flex flex-col gap-8">
+                                        
+                                        {/* 自問自答閃卡 */}
+                                        <div className="sketch-box bg-white p-5 relative">
+                                            <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-teal-600">
+                                                FLASHCARDS
+                                            </div>
+                                            <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3">
+                                                🃏 自問自答閃卡區
+                                            </h3>
+                                            <p className="text-xs text-slate-500 mb-4">
+                                                自問自答！點擊「👁️」顯示/隱藏答案，點擊「剔號」標記已背誦。
+                                            </p>
+
+                                            <div className="space-y-3 min-h-[160px]">
+                                                {flashcards.length === 0 ? (
+                                                    <p className="text-slate-400 text-xs italic text-center py-6">填入高頻核心提問，打造屬於你的考前閃卡包！</p>
+                                                ) : (
+                                                    flashcards.map(fc => (
+                                                        <div key={fc.id} className="p-3 border border-slate-800 rounded-xl bg-slate-50/50 relative group">
+                                                            <div className="absolute top-2 right-2 flex items-center gap-1.5 no-print">
+                                                                <button 
+                                                                    onClick={() => setFlashcards(flashcards.map(item => item.id === fc.id ? { ...item, mastered: !item.mastered } : item))}
+                                                                    className={`p-1 rounded border ${fc.mastered ? 'bg-emerald-100 border-emerald-400 text-emerald-700' : 'bg-white text-slate-400'}`}
+                                                                    title="標記已背熟"
+                                                                >
+                                                                    <Icons.Check />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => setFlashcards(flashcards.filter(item => item.id !== fc.id))}
+                                                                    className="p-1 text-slate-300 hover:text-rose-500"
+                                                                >
+                                                                    <Icons.Trash2 />
+                                                                </button>
+                                                            </div>
+
+                                                            <div className="pr-12 mb-2">
+                                                                <span className="font-extrabold text-xs text-rose-500 mr-1 doodle-font">Q:</span>
+                                                                <span className="font-bold text-xs text-slate-900 doodle-font">{fc.question}</span>
+                                                            </div>
+
+                                                            <div className="border-t border-slate-200 pt-2 flex items-start justify-between">
+                                                                <div className="flex-grow">
+                                                                    <span className="font-extrabold text-xs text-emerald-600 mr-1 doodle-font">A:</span>
+                                                                    <span className={`text-xs doodle-font print-reveal-answer ${fc.showAnswer ? 'text-slate-700 font-medium' : 'blur-sm select-none bg-slate-200 text-transparent px-1 rounded'}`}>
+                                                                        {fc.answer}
+                                                                    </span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => setFlashcards(flashcards.map(item => item.id === fc.id ? { ...item, showAnswer: !item.showAnswer } : item))}
+                                                                    className="no-print p-1 text-slate-400 hover:text-slate-700 shrink-0"
+                                                                >
+                                                                    {fc.showAnswer ? <Icons.EyeOff /> : <Icons.Eye />}
+                                                                </button>
+                                                            </div>
+
+                                                            {fc.mastered && (
+                                                                <div className="absolute -bottom-1 -right-1 bg-white border-2 border-emerald-500 text-emerald-600 text-[8px] font-black px-1.5 py-0.5 rounded-full transform rotate-12">
+                                                                    ⭐ 已掌握
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+
+                                            <div className="mt-4 p-3 border-t border-slate-100 no-print space-y-2">
+                                                <input 
+                                                    type="text"
+                                                    placeholder="閃卡題目 (Q)..."
+                                                    value={newFlashQuestion}
+                                                    onChange={(e) => setNewFlashQuestion(e.target.value)}
+                                                    className="w-full text-xs sketch-input py-1"
+                                                />
+                                                <input 
+                                                    type="text"
+                                                    placeholder="閃卡解答 (A)..."
+                                                    value={newFlashAnswer}
+                                                    onChange={(e) => setNewFlashAnswer(e.target.value)}
+                                                    className="w-full text-xs sketch-input py-1"
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        if(newFlashQuestion.trim() && newFlashAnswer.trim()) {
+                                                            setFlashcards([...flashcards, { id: Date.now(), question: newFlashQuestion.trim(), answer: newFlashAnswer.trim(), mastered: false, showAnswer: false }]);
+                                                            setNewFlashQuestion('');
+                                                            setNewFlashAnswer('');
+                                                        }
+                                                    }}
+                                                    className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 border text-slate-700 rounded text-xs font-bold flex items-center justify-center gap-1"
+                                                >
+                                                    <Icons.Plus />
+                                                    新增自問自答問答
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* 費曼學習法實踐 */}
+                                        <div className="sketch-box bg-[#FEFDF9] p-5 relative">
+                                            <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-indigo-600">
+                                                FEYNMAN CHECK
+                                            </div>
+                                            <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3">
+                                                🎓 費曼學習法實踐
+                                            </h3>
+                                            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                                                「你能用最普通的生活比喻與淺白字詞，向八歲小孩解釋完今日難點嗎？」
+                                            </p>
+
+                                            <div className="space-y-3">
+                                                {feynmanList.map(item => (
+                                                    <div 
+                                                        key={item.id}
+                                                        onClick={() => setFeynmanList(feynmanList.map(f => f.id === item.id ? { ...f, checked: !f.checked } : f))}
+                                                        className="flex items-start gap-3 cursor-pointer select-none group"
+                                                    >
+                                                        <button className="mt-0.5 shrink-0">
+                                                            {item.checked ? (
+                                                                <div className="w-5 h-5 border-2 border-slate-800 rounded flex items-center justify-center bg-indigo-100">
+                                                                    <Icons.Check />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-5 h-5 border-2 border-slate-800 rounded group-hover:bg-indigo-50/50"></div>
+                                                            )}
+                                                        </button>
+                                                        <span className={`text-xs font-medium leading-relaxed doodle-font ${item.checked ? 'text-indigo-800 font-bold' : 'text-slate-700'}`}>
+                                                            {item.text}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        )}
+
+                        {}
+                        {/* ========================================================= */}
+                        {/* 3. 間隔重複與操卷專用版介面 */}
+                        {/* ========================================================= */}
+                        {activeTab === 'spacedRepetition' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                
+                                {/* 左側：操卷挑戰與心靈補給 */}
+                                <div className="lg:col-span-5 flex flex-col gap-8">
+                                    
+                                    {/* 操卷挑戰 */}
+                                    <div className="p-5 sketch-box bg-white relative">
+                                        <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-red-600">
+                                            EXAM PRACTICE
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-4 flex items-center gap-1.5">
+                                            🏆 今日操卷挑戰
+                                        </h3>
+
+                                        <div className="space-y-4 text-xs">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-slate-700 font-bold mb-1">⏱️ 官方限時：</label>
+                                                    <div className="flex items-center gap-1">
+                                                        <input 
+                                                            type="number"
+                                                            value={paperTimeLimit}
+                                                            onChange={(e) => setPaperTimeLimit(e.target.value)}
+                                                            className="w-16 sketch-input text-center font-bold text-sm"
+                                                        />
+                                                        <span className="font-semibold text-slate-600">分鐘</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-slate-700 font-bold mb-1">⏱️ 實際用時：</label>
+                                                    <div className="flex items-center gap-1">
+                                                        <input 
+                                                            type="text"
+                                                            placeholder="分/秒"
+                                                            value={paperActualTime}
+                                                            onChange={(e) => setPaperActualTime(e.target.value)}
+                                                            className="w-16 sketch-input text-center font-bold text-sm"
+                                                        />
+                                                        <span className="font-semibold text-slate-600">分鐘</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-slate-700 font-bold mb-1">🎯 目標分數：</label>
+                                                    <input 
+                                                        type="text"
+                                                        placeholder="例如: Level 5*"
+                                                        value={paperTargetScore}
+                                                        onChange={(e) => setPaperTargetScore(e.target.value)}
+                                                        className="w-full sketch-input font-bold text-center text-sm text-amber-600"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-slate-700 font-bold mb-1">💯 今日得分：</label>
+                                                    <input 
+                                                        type="text"
+                                                        placeholder="例如: 84%"
+                                                        value={paperScore}
+                                                        onChange={(e) => setPaperScore(e.target.value)}
+                                                        className="w-full sketch-input font-bold text-center text-sm text-red-600"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-slate-700 font-bold mb-1">📝 操卷心得與檢討：</label>
+                                                <textarea 
+                                                    value={paperNotes}
+                                                    onChange={(e) => setPaperNotes(e.target.value)}
+                                                    placeholder="例如：後半段 Section B 題目時間不夠用，需提升解題敏捷度..."
+                                                    className="w-full h-20 p-2 border-2 border-dashed border-slate-300 rounded-lg outline-none doodle-font font-medium"
+                                                />
+                                            </div>
+
+                                            {/* 模擬計時器 */}
+                                            <div className="no-print border border-dashed border-slate-400 p-3 rounded-xl bg-slate-50 text-center">
+                                                <span className="inline-block bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] mb-1.5">
+                                                    ⏱️ 考場模擬限時倒數器
+                                                </span>
+                                                <div className="text-xl font-bold doodle-font text-slate-800 tracking-wider mb-2">
+                                                    {formatExamTime(examTimerSec)}
+                                                </div>
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            if(!examTimerRunning) {
+                                                                setExamTimerSec(parseInt(paperTimeLimit || 120)*60);
+                                                            }
+                                                            setExamTimerRunning(!examTimerRunning);
+                                                        }}
+                                                        className={`px-3 py-1 rounded text-xs font-bold text-white shadow ${examTimerRunning ? 'bg-amber-500 hover:bg-amber-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                                    >
+                                                        {examTimerRunning ? '暫停' : '開始操卷'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setExamTimerRunning(false); setExamTimerSec(parseInt(paperTimeLimit || 120)*60); }}
+                                                        className="px-2 py-1 rounded text-xs bg-white border hover:bg-slate-50 text-slate-600"
+                                                    >
+                                                        重設
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 心靈補給站 */}
+                                    <div className="p-5 sketch-box bg-[#FEFDF9] relative">
+                                        <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-rose-500">
+                                            MINDSET
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3 flex items-center gap-1">
+                                            ❤️ 心靈補給站
+                                        </h3>
+                                        
+                                        <div className="space-y-4 text-xs">
+                                            <div>
+                                                <label className="block text-slate-700 font-bold mb-1">🌟 寫下一句對自己的承諾與打氣：</label>
+                                                <input 
+                                                    type="text"
+                                                    value={mindsetQuote}
+                                                    onChange={(e) => setMindsetQuote(e.target.value)}
+                                                    className="w-full sketch-input doodle-font font-bold text-slate-800"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-slate-700 font-bold mb-1">🙏 備考中的小確幸與感恩小記：</label>
+                                                <textarea 
+                                                    value={gratitude}
+                                                    onChange={(e) => setGratitude(e.target.value)}
+                                                    placeholder="生活裡的一杯熱茶、戰友的加油訊息..."
+                                                    className="w-full h-14 p-2 border-2 border-dashed border-slate-300 rounded-lg bg-rose-50/10 outline-none doodle-font font-medium text-slate-600"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                {/* 右側：間隔重複表與考評陷阱 */}
+                                <div className="lg:col-span-7 flex flex-col gap-8">
+                                    
+                                    {/* 間隔重複溫習表 */}
+                                    <div className="p-5 sketch-box bg-white relative">
+                                        <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-indigo-600">
+                                            SPACED REPETITION
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3">
+                                            🔄 間隔重複溫習表
+                                        </h3>
+                                        <p className="text-xs text-slate-500 mb-4">
+                                            系統會依據基準日，<strong>自動運算出</strong> 1天、3天、7天後的黃金重溫日期！
+                                        </p>
+
+                                        <div className="space-y-3.5 min-h-[180px]">
+                                            {srTopics.length === 0 ? (
+                                                <p className="text-slate-400 text-xs italic text-center py-8">填寫重要考點，透過黃金週期將短期記憶轉化為長期記憶！</p>
+                                            ) : (
+                                                srTopics.map(topic => (
+                                                    <div key={topic.id} className="p-3 border-2 border-slate-800 rounded-xl bg-slate-50/30 relative group">
+                                                        <button 
+                                                            onClick={() => setSrTopics(srTopics.filter(item => item.id !== topic.id))}
+                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 no-print text-slate-300 hover:text-rose-500 transition-all"
+                                                        >
+                                                            <Icons.Trash2 />
+                                                        </button>
+
+                                                        <div className="mb-2.5 pr-8">
+                                                            <span className="font-bold text-slate-900 doodle-font text-sm">📘 {topic.topic}</span>
+                                                            <div className="text-[9px] text-slate-400">基準日期: {topic.baseDate}</div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <button
+                                                                onClick={() => setSrTopics(srTopics.map(t => t.id === topic.id ? { ...t, d1: !t.d1 } : t))}
+                                                                className={`p-1.5 border-2 rounded-lg flex flex-col items-center justify-center transition-all ${topic.d1 ? 'bg-emerald-100 border-emerald-500 text-emerald-800 font-bold' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-800'}`}
+                                                            >
+                                                                <span className="text-[9px]">1 天後 ({calculateFutureDate(topic.baseDate, 1)})</span>
+                                                                <span className="text-[9px] flex items-center gap-0.5 mt-0.5">
+                                                                    {topic.d1 ? '✅ 已重溫' : '▫️ 未重溫'}
+                                                                </span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => setSrTopics(srTopics.map(t => t.id === topic.id ? { ...t, d3: !t.d3 } : t))}
+                                                                className={`p-1.5 border-2 rounded-lg flex flex-col items-center justify-center transition-all ${topic.d3 ? 'bg-indigo-100 border-indigo-500 text-indigo-800 font-bold' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-800'}`}
+                                                            >
+                                                                <span className="text-[9px]">3 天後 ({calculateFutureDate(topic.baseDate, 3)})</span>
+                                                                <span className="text-[9px] flex items-center gap-0.5 mt-0.5">
+                                                                    {topic.d3 ? '✅ 已重溫' : '▫️ 未重溫'}
+                                                                </span>
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => setSrTopics(srTopics.map(t => t.id === topic.id ? { ...t, d7: !t.d7 } : t))}
+                                                                className={`p-1.5 border-2 rounded-lg flex flex-col items-center justify-center transition-all ${topic.d7 ? 'bg-rose-100 border-rose-500 text-rose-800 font-bold' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-800'}`}
+                                                            >
+                                                                <span className="text-[9px]">7 天後 ({calculateFutureDate(topic.baseDate, 7)})</span>
+                                                                <span className="text-[9px] flex items-center gap-0.5 mt-0.5">
+                                                                    {topic.d7 ? '✅ 已重溫' : '▫️ 未重溫'}
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 p-3 border-t border-slate-100 no-print">
+                                            <p className="text-xs font-bold text-slate-700 mb-2">➕ 新增追蹤課題</p>
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    type="text"
+                                                    placeholder="例如：數列 AP/GP 難題突破、文言句式..."
+                                                    value={newSrTopic}
+                                                    onChange={(e) => setNewSrTopic(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if(e.key === 'Enter' && newSrTopic.trim()) {
+                                                            setSrTopics([...srTopics, { id: Date.now(), topic: newSrTopic.trim(), baseDate: date, d1: false, d3: false, d7: false }]);
+                                                            setNewSrTopic('');
+                                                        }
+                                                    }}
+                                                    className="flex-grow text-xs sketch-input py-1"
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        if(newSrTopic.trim()) {
+                                                            setSrTopics([...srTopics, { id: Date.now(), topic: newSrTopic.trim(), baseDate: date, d1: false, d3: false, d7: false }]);
+                                                            setNewSrTopic('');
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border text-slate-700 rounded text-xs font-bold flex items-center justify-center gap-1"
+                                                >
+                                                    <Icons.Plus />
+                                                    加入
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 魔鬼陷阱卡 */}
+                                    <div className="p-5 sketch-box bg-white relative">
+                                        <div className="absolute -top-3 right-6 bg-white px-2 border-2 border-slate-800 rounded font-bold text-[10px] text-amber-500">
+                                            TRAP ALERT
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900 border-b-2 border-slate-800 pb-2 mb-3 flex items-center gap-1.5">
+                                            ⚠️ 常犯魔鬼細節 (Trap Log)
+                                        </h3>
+                                        <p className="text-xs text-slate-500 mb-4">
+                                            記錄大考真題中的致命陷阱，或個人慣性粗心點。考前一讀避免扣分！
+                                        </p>
+
+                                        <div className="space-y-2.5 min-h-[100px] bg-amber-50/20 p-3 rounded-lg border-2 border-dashed border-amber-300">
+                                            {traps.length === 0 ? (
+                                                <p className="text-slate-400 text-xs italic text-center py-6">今日無踏入陷阱，持續保持！</p>
+                                            ) : (
+                                                traps.map(item => (
+                                                    <div key={item.id} className="flex items-start justify-between group gap-2">
+                                                        <div className="flex items-start gap-1.5">
+                                                            <Icons.AlertTriangle />
+                                                            <span className="text-xs doodle-font font-bold text-amber-900 leading-relaxed">
+                                                                {item.text}
+                                                            </span>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => setTraps(traps.filter(t => t.id !== item.id))}
+                                                            className="opacity-0 group-hover:opacity-100 no-print text-slate-400 hover:text-rose-500 p-0.5 shrink-0"
+                                                        >
+                                                            <Icons.Trash2 />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 flex gap-2 no-print">
+                                            <input 
+                                                type="text"
+                                                placeholder="例：題目限解正整數，誤代入負分數解..."
+                                                value={newTrapText}
+                                                onChange={(e) => setNewTrapText(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if(e.key === 'Enter' && newTrapText.trim()){
+                                                        setTraps([...traps, { id: Date.now(), text: newTrapText.trim() }]);
+                                                        setNewTrapText('');
+                                                    }
+                                                }}
+                                                className="flex-grow sketch-input text-xs px-2 py-1"
+                                            />
+                                            <button 
+                                                onClick={() => {
+                                                    if(newTrapText.trim()){
+                                                        setTraps([...traps, { id: Date.now(), text: newTrapText.trim() }]);
+                                                        setNewTrapText('');
+                                                    }
+                                                }}
+                                                className="p-1.5 border-2 border-slate-800 rounded bg-slate-100 hover:bg-slate-200"
+                                            >
+                                                <Icons.Plus />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+
+                        {/* --- 3. 頁尾設計 (Footer) --- */}
+                        <footer className="mt-12 pt-6 border-t-2 border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-bold">
+                            <div>
+                                {activeTab === 'pomodoro' && <span>💡 每完成 4 個番茄鐘建議安排一次 15-30 分鐘的大休息。</span>}
+                                {activeTab === 'activeRecall' && <span>💡 主動提取記憶的過程可能稍顯吃力，但能創造極高質量的長期記憶儲存。</span>}
+                                {activeTab === 'spacedRepetition' && <span>💡 錯題本與魔鬼陷阱考前必讀！配合間隔重複以達到複利學習效果。</span>}
+                            </div>
+                            <div className="text-right doodle-font text-slate-800 text-sm">
+                                Designed by <span className="font-bold underline decoration-wavy decoration-rose-500">Miss Tsang</span>
+                            </div>
+                        </footer>
+
+                    </div>
+
+                    {/* --- 自訂手繪風確認對話盒 (完全代替 confirm) --- */}
+                    {showConfirmModal && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn no-print">
+                            <div className="bg-white max-w-sm w-full p-6 sketch-box text-center">
+                                <h4 className="text-lg font-black text-slate-900 doodle-font mb-2">⚠️ 確定清空內容嗎？</h4>
+                                <p className="text-xs text-slate-500 leading-relaxed mb-6">
+                                    此動作將會抹除今日在此複習分頁中輸入的所有目標、課表及暫存紀錄。確認要清除並重新開始嗎？
+                                </p>
+                                <div className="flex gap-3 justify-center">
+                                    <button
+                                        onClick={confirmReset}
+                                        className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg border-2 border-slate-800 shadow"
+                                    >
+                                        確定清空
+                                    </button>
+                                    <button
+                                        onClick={() => setShowConfirmModal(false)}
+                                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300"
+                                    >
+                                        取消
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        // --- 啟動 React 渲染 ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+</body>
+</html>
